@@ -1,0 +1,140 @@
+/* AppLayout.css - Main Layout with Both Navbar and Sidebar */
+
+/* ==========================================
+   APP CONTAINER
+   ========================================== */
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+/* ==========================================
+   MAIN CONTENT AREA
+   ========================================== */
+
+.main-content {
+  flex: 1;
+  margin-left: 260px; /* Width of open sidebar */
+  margin-top: 70px; /* Height of top navbar */
+  transition: margin-left 0.3s ease;
+  min-height: calc(100vh - 70px);
+  padding: 0; /* No padding for home page full width */
+}
+
+/* Add padding only for non-home pages */
+.main-content > *:not(.home-page) {
+  padding: 2rem;
+}
+
+/* When sidebar is closed */
+.sidebar.closed ~ .main-content {
+  margin-left: 70px;
+}
+
+/* ==========================================
+   ADJUST SIDEBAR FOR TOP NAVBAR
+   ========================================== */
+
+.sidebar {
+  top: 70px !important; /* Start below navbar */
+  height: calc(100vh - 70px) !important; /* Full height minus navbar */
+}
+
+/* ==========================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================== */
+
+/* Tablet and Below */
+@media (max-width: 991px) {
+  .main-content {
+    margin-left: 0 !important;
+    padding: 1rem;
+  }
+
+  .main-content > *:not(.home-page) {
+    padding: 1rem;
+  }
+
+  .sidebar {
+    top: 70px !important;
+  }
+
+  /* Show hamburger menu below navbar */
+  .hamburger-menu {
+    top: 80px !important; /* Below navbar */
+  }
+}
+
+/* Mobile */
+@media (max-width: 576px) {
+  .main-content {
+    padding: 0.5rem;
+  }
+
+  .main-content > *:not(.home-page) {
+    padding: 0.5rem;
+  }
+}
+
+/* ==========================================
+   CONTENT WIDTH CONSTRAINTS
+   ========================================== */
+
+.main-content .container {
+  max-width: 1400px;
+}
+
+/* ==========================================
+   PAGE TRANSITIONS
+   ========================================== */
+
+.main-content > *:not(.home-page) {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================
+   SCROLLBAR FOR MAIN CONTENT
+   ========================================== */
+
+.main-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* ==========================================
+   HIDE SIDEBAR ON PUBLIC PAGES (OPTIONAL)
+   ========================================== */
+
+/* If you want to hide sidebar on login/register pages */
+body.public-page .sidebar {
+  display: none;
+}
+
+body.public-page .main-content {
+  margin-left: 0 !important;
+}

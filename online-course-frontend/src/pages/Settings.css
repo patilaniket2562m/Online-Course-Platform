@@ -1,0 +1,41 @@
+/* Settings.css */
+
+.settings-sidebar .list-group-item {
+  border: none;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.settings-sidebar .list-group-item:hover {
+  background-color: #f8f9fa;
+}
+
+.settings-sidebar .list-group-item.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+}
+
+.settings-sidebar .list-group-item i {
+  font-size: 1.2rem;
+}
+
+.settings-content {
+  min-height: 500px;
+}
+
+.form-check-input:checked {
+  background-color: #667eea;
+  border-color: #667eea;
+}
+
+.form-switch .form-check-input {
+  width: 3em;
+  height: 1.5em;
+}
+
+.form-switch .form-check-input:checked {
+  background-color: #28a745;
+  border-color: #28a745;
+}

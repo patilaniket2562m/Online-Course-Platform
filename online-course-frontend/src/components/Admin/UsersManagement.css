@@ -1,0 +1,27 @@
+/* UsersManagement.css */
+
+.table-hover tbody tr {
+  transition: all 0.3s ease;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
+  transform: scale(1.01);
+}
+
+.user-avatar-small {
+  flex-shrink: 0;
+}
+
+.btn-group-sm .btn {
+  padding: 0.375rem 0.75rem;
+}
+
+.table thead th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
