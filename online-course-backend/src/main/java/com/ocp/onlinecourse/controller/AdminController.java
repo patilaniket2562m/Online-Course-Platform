@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "http://localhost:3000")
 public class AdminController {
 
     @Autowired
@@ -46,9 +45,9 @@ public class AdminController {
         try {
             System.out.println("=== DELETE COURSE REQUEST ===");
             System.out.println("Course ID: " + id);
-            
+
             courseService.deleteCourse(id);
-            
+
             System.out.println("Course deleted successfully!");
             return ResponseEntity.ok("Course deleted successfully!");
         } catch (Exception e) {

@@ -15,7 +15,7 @@ import com.ocp.onlinecourse.service.CourseService;
 
 @RestController
 @RequestMapping("/api/courses")
-@CrossOrigin(origins = "http://localhost:3000")
+
 public class CourseController {
 
     @Autowired
@@ -75,4 +75,3 @@ public class CourseController {
         return ResponseEntity.ok(user.getEnrolledCourses());
     }
 }
-

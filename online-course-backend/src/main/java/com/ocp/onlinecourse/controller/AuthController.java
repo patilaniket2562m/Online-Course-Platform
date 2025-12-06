@@ -17,7 +17,6 @@ import com.ocp.onlinecourse.service.UserService;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:3000")
 public class AuthController {
 
     @Autowired
@@ -43,13 +42,12 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Email already registered!");
         }
 
-        // Store role without “ROLE_” prefix
         if (user.getRole() == null || user.getRole().isBlank()) {
-            user.setRole("USER"); // clean role
+            user.setRole("USER");
         }
 
         User saved = userService.register(user);
-        saved.setPassword(null); // hide encrypted password from response
+        saved.setPassword(null);
 
         return ResponseEntity.ok(saved);
     }
