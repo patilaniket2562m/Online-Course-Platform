@@ -70,21 +70,34 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Allow deployed & local frontend
-        config.setAllowedOriginPatterns(List.of(
-                "https://online-course-platform-eosin.vercel.app",
-                "http://localhost:3000"
+        // ✅ FIXED: Allow your exact Vercel frontend URL
+        config.setAllowedOrigins(List.of(
+            "https://online-course-platform-eosin.vercel.app",
+            "http://localhost:3000"  // for local development
         ));
 
         config.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+            "GET", "POST", "PUT", "DELETE", "OPTIONS"
         ));
 
-        config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of(
+            "Authorization", 
+            "Content-Type", 
+            "Accept",
+            "Origin",
+            "X-Requested-With"
+        ));
 
-        // allow cookies & Authorization header
+        config.setExposedHeaders(List.of(
+            "Authorization",
+            "Content-Type"
+        ));
+
+        // ✅ CRITICAL: Allow credentials (for cookies/auth headers)
         config.setAllowCredentials(true);
+
+        // ✅ Cache preflight requests for 1 hour
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
