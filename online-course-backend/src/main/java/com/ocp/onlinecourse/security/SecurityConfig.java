@@ -77,32 +77,30 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(Arrays.asList(
-                "https://online-course-platform-eosin.vercel.app",
-                "https://online-course-platform-mm2u.onrender.com",
-                "http://localhost:3000",
-                "http://localhost:3001"
+        // ⭐ REQUIRED FOR ALL CLOUD DEPLOYS
+        config.setAllowedOriginPatterns(Arrays.asList("*"));
+
+        config.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
         ));
 
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
-
+        config.setAllowedHeaders(Arrays.asList("*"));
         config.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
+                "Authorization", "Content-Type",
                 "Access-Control-Allow-Origin",
-                "Access-Control-Allow-Methods",
                 "Access-Control-Allow-Headers",
+                "Access-Control-Allow-Methods",
                 "Access-Control-Allow-Credentials"
         ));
 
+        config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
