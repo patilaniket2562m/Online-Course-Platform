@@ -35,26 +35,26 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
 
-                // Allow OPTIONS preflight
+                // Preflight ALWAYS allowed
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Public endpoints
+                // PUBLIC API
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
 
-                // User
+                // USER
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
-                // Admin
+                // ADMIN
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
 
-                // Everything else
+                // EVERYTHING ELSE
                 .anyRequest().authenticated()
         );
 
@@ -72,8 +72,8 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOriginPatterns(List.of(
-                "https://online-course-platform-eosin.vercel.app",  // deployed frontend
-                "http://localhost:3000"                             // local dev
+                "https://online-course-platform-eosin.vercel.app",
+                "http://localhost:3000"
         ));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
@@ -82,6 +82,8 @@ public class SecurityConfig {
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+
+        // IMPORTANT — APPLIES CORS TO ENTIRE API
         source.registerCorsConfiguration("/**", config);
 
         return source;
