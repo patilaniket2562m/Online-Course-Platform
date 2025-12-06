@@ -71,33 +71,30 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ✅ FIXED: Use setAllowedOrigins instead of setAllowedOriginPatterns
+        // ✅ CHANGE THIS: Use setAllowedOrigins instead
         config.setAllowedOrigins(List.of(
-                "https://online-course-platform-eosin.vercel.app",
-                "http://localhost:3000"
+            "https://online-course-platform-eosin.vercel.app",
+            "http://localhost:3000"
         ));
 
         config.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+            "GET", "POST", "PUT", "DELETE", "OPTIONS"
         ));
 
         config.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "Origin",
-                "X-Requested-With"
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Origin",
+            "X-Requested-With"
         ));
 
         config.setExposedHeaders(List.of(
-                "Authorization",
-                "Content-Type"
+            "Authorization",
+            "Content-Type"
         ));
 
-        // Allow cookies & Authorization header
         config.setAllowCredentials(true);
-
-        // Cache preflight requests for 1 hour
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
