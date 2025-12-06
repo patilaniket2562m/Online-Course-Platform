@@ -29,10 +29,20 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(org.springframework.security.config.annotation.web.builders.HttpSecurity http) throws Exception {
 
-        http
+
             // ⭐ Required to let requests AFTER our cors filter
-            .cors(cors -> {})
-            .csrf(csrf -> csrf.disable())
+        http
+        .cors(cors -> {})
+        .csrf(csrf -> csrf.disable())
+        .headers(headers -> 
+            headers.addHeaderWriter((request, response) -> {
+                response.setHeader("Access-Control-Allow-Origin", request.getHeader("Origin"));
+                response.setHeader("Vary", "Origin");
+                response.setHeader("Access-Control-Allow-Credentials", "true");
+                response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+                response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+            })
+        )
             .authorizeHttpRequests(auth -> auth
 
                 // ⭐ Must allow OPTIONS always
