@@ -17,7 +17,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
@@ -35,26 +35,26 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
 
-                // ⭐ Allow ALL preflight OPTIONS requests
+                // Allow preflight calls
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // ⭐ PUBLIC
+                // Public
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
 
-                // ⭐ USER
+                // User
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
-                // ⭐ ADMIN
+                // Admin
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
 
-                // ⭐ Default
+                // Everything else
                 .anyRequest().authenticated()
         );
 
@@ -67,21 +67,27 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ⭐ GLOBAL CORS FIX
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ⭐ ALLOWS ALL DEPLOYED FRONTENDS
-        config.setAllowedOriginPatterns(Arrays.asList(
+        config.setAllowedOriginPatterns(List.of(
                 "https://online-course-platform-eosin.vercel.app",
-                "http://localhost:3000",
-                "*"
+                "http://localhost:3000"
         ));
 
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("*"));
-        config.setExposedHeaders(Arrays.asList("*"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        config.setAllowedHeaders(List.of(
+                "*",
+                "Authorization",
+                "Content-Type"
+        ));
+
+        config.setExposedHeaders(List.of(
+                "Authorization"
+        ));
+
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
