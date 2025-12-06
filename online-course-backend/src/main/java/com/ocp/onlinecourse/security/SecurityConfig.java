@@ -35,21 +35,21 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
 
-                // Allow OPTIONS (preflight)
+                // Allow OPTIONS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // === PUBLIC ENDPOINTS ===
+                // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
 
-                // === USER ===
+                // User
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
-                // === ADMIN ===
+                // Admin
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
@@ -67,14 +67,13 @@ public class SecurityConfig {
         return http.build();
     }
 
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
-                "https://online-course-platform-eosin.vercel.app",  // EXACT domain
-                "http://localhost:3000"
+        config.setAllowedOriginPatterns(List.of(
+                "https://online-course-platform-eosin.vercel.app",  // deployed frontend
+                "http://localhost:3000"                             // local dev
         ));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
@@ -87,7 +86,6 @@ public class SecurityConfig {
 
         return source;
     }
-
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
