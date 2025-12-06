@@ -31,7 +31,7 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // ⭐ Ignore OPTIONS requests completely
+        // ⭐ VERY IMPORTANT — allow CORS preflight requests
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);
             return;
@@ -39,7 +39,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // allow auth endpoints through without token
+        // ⭐ Auth endpoints do NOT need JWT
         if (path.startsWith("/api/auth")) {
             filterChain.doFilter(request, response);
             return;
@@ -53,6 +53,9 @@ public class JwtFilter extends OncePerRequestFilter {
             token = authHeader.substring(7);
             try {
                 username = jwtUtil.extractUsername(token);
+            } catch (ExpiredJwtException e) {
+                filterChain.doFilter(request, response);
+                return;
             } catch (Exception e) {
                 filterChain.doFilter(request, response);
                 return;
@@ -73,5 +76,4 @@ public class JwtFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
-
 }
