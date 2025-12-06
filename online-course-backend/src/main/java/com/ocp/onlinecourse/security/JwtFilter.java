@@ -33,29 +33,39 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // allow auth endpoints through without token
-        if (path.startsWith("/api/auth")) {
+        /** ⭐ Allow PUBLIC endpoints without JWT */
+        if (
+                path.startsWith("/api/auth") ||
+                path.startsWith("/api/courses") ||
+                path.startsWith("/api/reviews") ||
+                path.equals("/") ||
+                request.getMethod().equalsIgnoreCase("OPTIONS")
+        ) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String authHeader = request.getHeader("Authorization");
-        String token = null;
+
+        // ⭐ No token at all → allow request and move ahead
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String token = authHeader.substring(7);
         String username = null;
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);
-            try {
-                username = jwtUtil.extractUsername(token);
-            } catch (ExpiredJwtException e) {
-                // token expired -> let security respond (401)
-                filterChain.doFilter(request, response);
-                return;
-            } catch (Exception e) {
-                // invalid token -> continue without authenticating
-                filterChain.doFilter(request, response);
-                return;
-            }
+        try {
+            username = jwtUtil.extractUsername(token);
+        } catch (ExpiredJwtException e) {
+            // expired token → allow security context to handle it
+            filterChain.doFilter(request, response);
+            return;
+        } catch (Exception e) {
+            // invalid token → ignore token, allow request
+            filterChain.doFilter(request, response);
+            return;
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -64,7 +74,11 @@ public class JwtFilter extends OncePerRequestFilter {
             if (jwtUtil.validateToken(token, userDetails.getUsername())) {
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
