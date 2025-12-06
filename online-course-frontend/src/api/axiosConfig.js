@@ -6,12 +6,12 @@ const BASE_URL =
 
 const api = axios.create({
   baseURL: BASE_URL + "/api",
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// ⭐ JWT Auto Attach Everywhere Except Login/Register
 api.interceptors.request.use(
   (config) => {
     if (config.url && config.url.startsWith("/auth")) {
