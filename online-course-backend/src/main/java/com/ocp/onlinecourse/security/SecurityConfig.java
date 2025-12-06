@@ -7,16 +7,17 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -27,100 +28,92 @@ public class SecurityConfig {
     private JwtFilter jwtFilter;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(org.springframework.security.config.annotation.web.builders.HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-
-            // ⭐ Required to let requests AFTER our cors filter
         http
-        .cors(cors -> {})
-        .csrf(csrf -> csrf.disable())
-        .headers(headers -> 
-            headers.addHeaderWriter((request, response) -> {
-                response.setHeader("Access-Control-Allow-Origin", request.getHeader("Origin"));
-                response.setHeader("Vary", "Origin");
-                response.setHeader("Access-Control-Allow-Credentials", "true");
-                response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-                response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
-            })
-        )
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
 
-                // ⭐ Must allow OPTIONS always
+                // REQUIRED FOR CORS PREFLIGHT
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // ⭐ Public endpoints
+                // PUBLIC ROOT LEVEL ROUTES
+                .requestMatchers("/", "/error", "/favicon.ico").permitAll()
+
+                // PUBLIC HEALTH ENDPOINTS
+                .requestMatchers("/actuator/health", "/health").permitAll()
+
+                // PUBLIC AUTH ENDPOINTS
                 .requestMatchers("/api/auth/**").permitAll()
+
+                // PUBLIC GET DATA
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
-                .requestMatchers("/", "/health", "/actuator/health").permitAll()
 
-                // ⭐ User endpoints
+                // USER ACCESS
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
-                // ⭐ Admin endpoints
+                // ADMIN ACCESS
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
 
-                // ⭐ Other requests require auth
+                // EVERYTHING ELSE IS SECURED
                 .anyRequest().authenticated()
             )
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             );
 
-        // ⭐ JWT filter
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    /**
-     * ⭐⭐ CRITICAL FIX ⭐⭐
-     * THIS FILTER RUNS BEFORE SPRING SECURITY (order=0)
-     * AND HANDLES ALL CORS REQUESTS INCLUDING OPTIONS.
-     */
     @Bean
-    public FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
-
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ⭐ Allowed origins (patterns allow wildcards)
-        config.setAllowedOriginPatterns(List.of(
+        // FRONTEND DEPLOYED ORIGINS
+        config.setAllowedOrigins(Arrays.asList(
                 "https://online-course-platform-eosin.vercel.app",
-                "http://localhost:*",
-                "https://*.railway.app",
-                "https://devoted-heart-production.up.railway.app"
+                "https://online-course-platform-mm2u.onrender.com",
+                "http://localhost:3000",
+                "http://localhost:3001"
         ));
 
-        // ⭐ Allowed HTTP methods
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        // HTTP METHODS
+        config.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+        ));
 
-        // ⭐ Allowed headers
+        // HEADERS
         config.setAllowedHeaders(List.of("*"));
 
-        // ⭐ Allow client to read ALL headers
-        config.setExposedHeaders(List.of("*"));
-
-        // ⭐ Required if using cookies/JWT in Authorization header
+        // FOR COOKIES + AUTH HEADERS
         config.setAllowCredentials(true);
 
-        // ⭐ Cache preflight for 1 hour
+        // HEADERS RETURNED TO CLIENT
+        config.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Accept",
+                "Origin",
+                "Access-Control-Allow-Origin",
+                "Access-Control-Allow-Methods",
+                "Access-Control-Allow-Headers",
+                "Access-Control-Allow-Credentials"
+        ));
+
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
-        // ⭐⭐ This is the magic ⭐⭐
-        FilterRegistrationBean<CorsFilter> bean =
-                new FilterRegistrationBean<>(new CorsFilter(source));
-
-        // ⭐⭐ Runs BEFORE Spring Security ⭐⭐
-        bean.setOrder(0);
-
-        return bean;
+        return source;
     }
 
     @Bean
