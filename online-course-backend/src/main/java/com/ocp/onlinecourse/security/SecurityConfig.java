@@ -35,34 +35,34 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
 
-                // Allow actuator health publicly
+                // Public health check
                 .requestMatchers("/actuator/health").permitAll()
 
-                // Allow root GET to avoid 403 for browser check
+                // Allow root GET
                 .requestMatchers(HttpMethod.GET, "/").permitAll()
 
-                // Allow authentication APIs
+                // Auth APIs
                 .requestMatchers("/api/auth/**").permitAll()
 
-                // Public GET endpoints for courses and reviews
+                // Public GET endpoints
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
 
-                // Enrollment - user
+                // Enrollment
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
 
-                // Checkout - user
+                // Checkout
                 .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
 
-                // Reviews - authenticated
+                // Reviews
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
-                // Admin endpoints
+                // Admin
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
 
-                // Everything else requires authentication
+                // Others
                 .anyRequest().authenticated()
         );
 
@@ -87,24 +87,31 @@ public class SecurityConfig {
     }
 
     /**
-     * CORS Configuration for Railway + Frontend deployment
+     * Global CORS Configuration for React Frontend hosted on Vercel
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of(
-                "*"
-                // If you want stronger security later, replace "*" with frontend URL
-                // "https://your-frontend-domain.netlify.app"
+                "https://online-course-platform.vercel.app",   // <-- REPLACE WITH YOUR VERCEL URL !!!
+                "http://localhost:3000"                        // Local testing
         ));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "X-Requested-With"
+        ));
+
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 }
