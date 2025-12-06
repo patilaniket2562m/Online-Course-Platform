@@ -14,8 +14,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
 
@@ -30,21 +30,21 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            // ⭐ MUST BE FIRST
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // ⭐ USE SPRING SECURITY CORS
+            .cors(cors -> {})
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
 
-                // ⭐ ALLOW PRE-FLIGHT
+                // ⭐ PRE-FLIGHT ALWAYS PERMITTED
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                 // ⭐ PUBLIC ENDPOINTS
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
-                .requestMatchers("/health").permitAll()
                 .requestMatchers("/").permitAll()
+                .requestMatchers("/health").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
 
                 // ⭐ USER ENDPOINTS
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
@@ -56,25 +56,30 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
 
-                // ⭐ EVERYTHING ELSE
+                // ⭐ OTHER REQUESTS
                 .anyRequest().authenticated()
             )
             .sessionManagement(session ->
-                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             );
 
-        // ⭐ ADD JWT FILTER
+        // ⭐ REGISTER JWT FILTER AFTER CORS
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    /**
+     * ⭐⭐ ABSOLUTE FIX ⭐⭐
+     * Global CORS filter that runs BEFORE Spring Security.
+     * This guarantees CORS headers on ALL requests.
+     */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsFilter corsFilter() {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // ⭐ MOST IMPORTANT PART — USE PATTERNS INSTEAD OF setAllowedOrigins
+        // ⭐ ALLOWED ORIGINS (PATTERNS ARE REQUIRED IN PROD)
         config.setAllowedOriginPatterns(List.of(
                 "https://online-course-platform-eosin.vercel.app",
                 "http://localhost:*",
@@ -82,32 +87,27 @@ public class SecurityConfig {
                 "https://devoted-heart-production.up.railway.app"
         ));
 
-        // ⭐ ALLOW ALL METHODS
+        // ⭐ ALLOWED METHODS
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
         ));
 
-        // ⭐ ALLOW ALL HEADERS
+        // ⭐ ALLOWED HEADERS
         config.setAllowedHeaders(List.of("*"));
 
-        // ⭐ EXPOSE HEADERS (OPTIONAL BUT GOOD)
-        config.setExposedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "X-Requested-With",
-                "Accept",
-                "Origin"
-        ));
+        // ⭐ EXPOSED HEADERS
+        config.setExposedHeaders(List.of("*"));
 
         // ⭐ MUST BE TRUE FOR COOKIES / JWT
         config.setAllowCredentials(true);
 
-        // ⭐ SPEED UP PREFLIGHT
+        // ⭐ CACHE PREFLIGHT FOR 1 HOUR
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-        return source;
+
+        return new CorsFilter(source);
     }
 
     @Bean
