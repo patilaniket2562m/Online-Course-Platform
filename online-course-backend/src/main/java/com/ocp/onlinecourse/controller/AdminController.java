@@ -14,21 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(
-        origins = {
-                "https://online-course-platform-eosin.vercel.app",   // <-- deployed frontend
-                "http://localhost:3000"                             // <-- local dev
-        },
-        allowedHeaders = "*",
-        allowCredentials = "true",
-        methods = {
-                RequestMethod.GET,
-                RequestMethod.POST,
-                RequestMethod.PUT,
-                RequestMethod.DELETE,
-                RequestMethod.OPTIONS
-        }
-)
+
 public class AdminController {
 
     @Autowired
