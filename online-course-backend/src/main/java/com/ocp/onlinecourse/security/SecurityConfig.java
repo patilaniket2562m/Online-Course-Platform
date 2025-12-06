@@ -35,26 +35,27 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
 
-                // Public health check
+                // Allow preflight CORS requests
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // Public health
                 .requestMatchers("/actuator/health").permitAll()
 
-                // Allow root GET
+                // Root GET
                 .requestMatchers(HttpMethod.GET, "/").permitAll()
 
-                // Auth APIs
+                // Authentication APIs
                 .requestMatchers("/api/auth/**").permitAll()
 
                 // Public GET endpoints
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
 
-                // Enrollment
+                // User enrollment & checkout
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
-
-                // Checkout
                 .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
 
-                // Reviews
+                // Reviews (authenticated user)
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
                 // Admin
@@ -62,7 +63,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
 
-                // Others
+                // Everything else
                 .anyRequest().authenticated()
         );
 
@@ -87,27 +88,21 @@ public class SecurityConfig {
     }
 
     /**
-     * Global CORS Configuration for React Frontend hosted on Vercel
+     * GLOBAL CORS config (fixes Vercel + HTTPS)
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
-                "https://online-course-platform.vercel.app",   // <-- REPLACE WITH YOUR VERCEL URL !!!
-                "http://localhost:3000"                        // Local testing
+        // Use AllowedOriginPatterns for HTTPS + credentials
+        config.setAllowedOriginPatterns(List.of(
+                "https://online-course-platform-eosin.vercel.app",  // your deployed frontend
+                "http://localhost:3000"                             // local dev
         ));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-
-        config.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "X-Requested-With"
-        ));
-
-        config.setAllowCredentials(true);
+        config.setAllowedHeaders(List.of("*")); // allow everything
+        config.setAllowCredentials(true);       // allow cookies / auth headers
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
