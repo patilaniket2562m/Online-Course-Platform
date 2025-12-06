@@ -11,6 +11,21 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/checkout")
+@CrossOrigin(
+        origins = {
+                "https://online-course-platform-eosin.vercel.app",   // Frontend on Vercel
+                "http://localhost:3000"                               // Local development
+        },
+        allowedHeaders = "*",
+        allowCredentials = "true",
+        methods = {
+                RequestMethod.GET,
+                RequestMethod.POST,
+                RequestMethod.PUT,
+                RequestMethod.DELETE,
+                RequestMethod.OPTIONS
+        }
+)
 public class CheckoutController {
 
     @Autowired

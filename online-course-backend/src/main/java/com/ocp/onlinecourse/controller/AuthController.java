@@ -17,6 +17,19 @@ import com.ocp.onlinecourse.service.UserService;
 
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(
+        origins = {
+                "https://online-course-platform-eosin.vercel.app",   // deployed frontend
+                "http://localhost:3000"                             // local frontend
+        },
+        allowCredentials = "true",
+        allowedHeaders = "*",
+        methods = {
+                RequestMethod.GET,
+                RequestMethod.POST,
+                RequestMethod.OPTIONS
+        }
+)
 public class AuthController {
 
     @Autowired

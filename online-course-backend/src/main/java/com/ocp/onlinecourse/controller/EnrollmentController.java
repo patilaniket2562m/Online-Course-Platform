@@ -11,7 +11,21 @@ import com.ocp.onlinecourse.service.EnrollmentService;
 
 @RestController
 @RequestMapping("/api/enroll")
-
+@CrossOrigin(
+        origins = {
+                "http://localhost:3000",
+                "https://online-course-platform-eosin.vercel.app"
+        },
+        allowedHeaders = "*",
+        allowCredentials = "true",
+        methods = {
+                RequestMethod.GET,
+                RequestMethod.POST,
+                RequestMethod.PUT,
+                RequestMethod.DELETE,
+                RequestMethod.OPTIONS
+        }
+)
 public class EnrollmentController {
 
     @Autowired

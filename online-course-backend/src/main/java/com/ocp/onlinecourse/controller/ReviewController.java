@@ -11,7 +11,21 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/reviews")
-
+@CrossOrigin(
+        origins = {
+                "http://localhost:3000",
+                "https://online-course-platform-eosin.vercel.app"
+        },
+        allowedHeaders = "*",
+        allowCredentials = "true",
+        methods = {
+                RequestMethod.GET,
+                RequestMethod.POST,
+                RequestMethod.PUT,
+                RequestMethod.DELETE,
+                RequestMethod.OPTIONS
+        }
+)
 public class ReviewController {
 
     @Autowired
