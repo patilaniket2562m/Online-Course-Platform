@@ -1,6 +1,5 @@
 /node_modules/
 /online-course-frontend/node_modules/
-/online-course-backend/target/
 .idea/
 .vscode/
 *.log
