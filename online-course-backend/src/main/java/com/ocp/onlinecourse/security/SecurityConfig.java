@@ -31,44 +31,44 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // ⭐ Allow CORS before security rules
+            .cors(cors -> {})
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
 
-                // REQUIRED FOR CORS PREFLIGHT
+                // ⭐⭐ REQUIRED for CORS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // PUBLIC ROOT LEVEL ROUTES
+                // Public endpoints
                 .requestMatchers("/", "/error", "/favicon.ico").permitAll()
-
-                // PUBLIC HEALTH ENDPOINTS
                 .requestMatchers("/actuator/health", "/health").permitAll()
-
-                // PUBLIC AUTH ENDPOINTS
                 .requestMatchers("/api/auth/**").permitAll()
 
-                // PUBLIC GET DATA
+                // Public GET endpoints
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
 
-                // USER ACCESS
+                // User endpoints
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
-                // ADMIN ACCESS
+                // Admin endpoints
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
 
-                // EVERYTHING ELSE IS SECURED
                 .anyRequest().authenticated()
             )
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             );
 
+        // ⭐ Add JWT before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        // ⭐ Prevent frame CORS failures
+        http.headers().frameOptions().disable();
 
         return http.build();
     }
@@ -77,7 +77,6 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // FRONTEND DEPLOYED ORIGINS
         config.setAllowedOrigins(Arrays.asList(
                 "https://online-course-platform-eosin.vercel.app",
                 "https://online-course-platform-mm2u.onrender.com",
@@ -85,24 +84,13 @@ public class SecurityConfig {
                 "http://localhost:3001"
         ));
 
-        // HTTP METHODS
-        config.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
-        ));
-
-        // HEADERS
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
-
-        // FOR COOKIES + AUTH HEADERS
         config.setAllowCredentials(true);
 
-        // HEADERS RETURNED TO CLIENT
         config.setExposedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",
-                "X-Requested-With",
-                "Accept",
-                "Origin",
                 "Access-Control-Allow-Origin",
                 "Access-Control-Allow-Methods",
                 "Access-Control-Allow-Headers",
