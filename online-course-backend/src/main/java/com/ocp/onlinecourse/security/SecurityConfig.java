@@ -13,6 +13,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
@@ -24,31 +29,40 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http.csrf(csrf -> csrf.disable());
+        http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable());
 
         http.authorizeHttpRequests(auth -> auth
-                // Allow auth endpoints
+
+                // Allow actuator health publicly
+                .requestMatchers("/actuator/health").permitAll()
+
+                // Allow root GET to avoid 403 for browser check
+                .requestMatchers(HttpMethod.GET, "/").permitAll()
+
+                // Allow authentication APIs
                 .requestMatchers("/api/auth/**").permitAll()
-                
-                // Public GET endpoints for courses
+
+                // Public GET endpoints for courses and reviews
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
-                
-                // Checkout - USER role required
-                .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
-                
-                // Enrollment - USER role required
+
+                // Enrollment - user
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
-                
-                // Reviews - any authenticated user
+
+                // Checkout - user
+                .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
+
+                // Reviews - authenticated
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
-                
-                // Admin endpoints - MUST USE hasAuthority with ROLE_ prefix
+
+                // Admin endpoints
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
-                
-                // Other endpoints require authentication
+
+                // Everything else requires authentication
                 .anyRequest().authenticated()
         );
 
@@ -70,5 +84,27 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * CORS Configuration for Railway + Frontend deployment
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOrigins(List.of(
+                "*"
+                // If you want stronger security later, replace "*" with frontend URL
+                // "https://your-frontend-domain.netlify.app"
+        ));
+
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }
