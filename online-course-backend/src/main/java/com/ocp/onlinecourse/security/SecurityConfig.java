@@ -17,7 +17,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
+import java.util.Arrays;
 
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
@@ -30,12 +30,12 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable());
+                .cors()
+                .and()
+                .csrf().disable();
 
         http.authorizeHttpRequests(auth -> auth
-
-                // ⭐⭐ FIX: allow ALL OPTIONS requests completely
+                // ⭐⭐ THIS IS THE FIX ⭐⭐
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                 // Public
@@ -57,11 +57,8 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
         );
 
-        http.sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        );
+        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-        // ⭐⭐ FIX — DO NOT APPLY JWT FILTER ON OPTIONS
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -71,17 +68,14 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOriginPatterns(List.of(
+        config.setAllowedOriginPatterns(Arrays.asList(
                 "https://online-course-platform-eosin.vercel.app",
-                "https://*",
                 "http://localhost:3000"
         ));
 
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of("*"));
-
-        // ⭐⭐ MOST IMPORTANT
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(Arrays.asList("*"));
+        config.setExposedHeaders(Arrays.asList("*"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
