@@ -30,11 +30,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http.cors().and().csrf().disable();
+        http
+            // ⭐ VERY IMPORTANT — attach corsConfigurationSource()
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable());
 
         http.authorizeHttpRequests(auth -> auth
 
-                // ⭐ MOST IMPORTANT — ALLOW OPTIONS ALWAYS
+                // ⭐ OPTIONS MUST BE PUBLIC
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                 // PUBLIC
@@ -67,7 +70,6 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ⭐ USE ALLOWED ORIGINS, NOT ALLOWED PATTERNS
         config.setAllowedOrigins(Arrays.asList(
                 "https://online-course-platform-eosin.vercel.app",
                 "http://localhost:3000"
