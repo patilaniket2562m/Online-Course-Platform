@@ -7,7 +7,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,6 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 import java.util.List;
 
@@ -27,59 +27,57 @@ public class SecurityConfig {
     private JwtFilter jwtFilter;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(org.springframework.security.config.annotation.web.builders.HttpSecurity http) throws Exception {
 
         http
-            // ⭐ USE SPRING SECURITY CORS
+            // ⭐ Required to let requests AFTER our cors filter
             .cors(cors -> {})
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
 
-                // ⭐ PRE-FLIGHT ALWAYS PERMITTED
+                // ⭐ Must allow OPTIONS always
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // ⭐ PUBLIC ENDPOINTS
+                // ⭐ Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
-                .requestMatchers("/").permitAll()
-                .requestMatchers("/health").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/", "/health", "/actuator/health").permitAll()
 
-                // ⭐ USER ENDPOINTS
+                // ⭐ User endpoints
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
-                // ⭐ ADMIN ENDPOINTS
+                // ⭐ Admin endpoints
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
 
-                // ⭐ OTHER REQUESTS
+                // ⭐ Other requests require auth
                 .anyRequest().authenticated()
             )
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             );
 
-        // ⭐ REGISTER JWT FILTER AFTER CORS
+        // ⭐ JWT filter
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     /**
-     * ⭐⭐ ABSOLUTE FIX ⭐⭐
-     * Global CORS filter that runs BEFORE Spring Security.
-     * This guarantees CORS headers on ALL requests.
+     * ⭐⭐ CRITICAL FIX ⭐⭐
+     * THIS FILTER RUNS BEFORE SPRING SECURITY (order=0)
+     * AND HANDLES ALL CORS REQUESTS INCLUDING OPTIONS.
      */
     @Bean
-    public CorsFilter corsFilter() {
+    public FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // ⭐ ALLOWED ORIGINS (PATTERNS ARE REQUIRED IN PROD)
+        // ⭐ Allowed origins (patterns allow wildcards)
         config.setAllowedOriginPatterns(List.of(
                 "https://online-course-platform-eosin.vercel.app",
                 "http://localhost:*",
@@ -87,27 +85,32 @@ public class SecurityConfig {
                 "https://devoted-heart-production.up.railway.app"
         ));
 
-        // ⭐ ALLOWED METHODS
-        config.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
-        ));
+        // ⭐ Allowed HTTP methods
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
-        // ⭐ ALLOWED HEADERS
+        // ⭐ Allowed headers
         config.setAllowedHeaders(List.of("*"));
 
-        // ⭐ EXPOSED HEADERS
+        // ⭐ Allow client to read ALL headers
         config.setExposedHeaders(List.of("*"));
 
-        // ⭐ MUST BE TRUE FOR COOKIES / JWT
+        // ⭐ Required if using cookies/JWT in Authorization header
         config.setAllowCredentials(true);
 
-        // ⭐ CACHE PREFLIGHT FOR 1 HOUR
+        // ⭐ Cache preflight for 1 hour
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
 
-        return new CorsFilter(source);
+        // ⭐⭐ This is the magic ⭐⭐
+        FilterRegistrationBean<CorsFilter> bean =
+                new FilterRegistrationBean<>(new CorsFilter(source));
+
+        // ⭐⭐ Runs BEFORE Spring Security ⭐⭐
+        bean.setOrder(0);
+
+        return bean;
     }
 
     @Bean
