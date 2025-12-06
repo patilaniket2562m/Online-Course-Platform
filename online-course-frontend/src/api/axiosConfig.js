@@ -1,16 +1,16 @@
 import axios from "axios";
 
-const instance = axios.create({
-  baseURL: "http://localhost:8080/api",
+const api = axios.create({
+  baseURL: process.env.REACT_APP_API_URL + "/api",  // IMPORTANT
   headers: {
-    "Content-Type": "application/json"
-  }
+    "Content-Type": "application/json",
+  },
 });
 
-instance.interceptors.request.use(
+// JWT Auto Attach (EXCEPT /auth login/register)
+api.interceptors.request.use(
   (config) => {
-    // Do not attach token to /api/auth/* (login/register)
-    if (config.url && config.url.includes("/auth")) {
+    if (config.url && config.url.startsWith("/auth")) {
       return config;
     }
 
@@ -18,9 +18,10 @@ instance.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-export default instance;
+export default api;

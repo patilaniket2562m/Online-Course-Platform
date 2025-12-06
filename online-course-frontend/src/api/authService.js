@@ -1,19 +1,28 @@
-import axios from "./axiosConfig";
+import api from "./axiosConfig";
 
 export async function login(email, password) {
-  const res = await axios.post("/auth/login", { email, password });
-  // res.data should be { token, email, role } as AuthResponse
+  const res = await api.post("/auth/login", { email, password });
+
   if (res && res.data && res.data.token) {
     localStorage.setItem("token", res.data.token);
-    localStorage.setItem("user", JSON.stringify({ email: res.data.email, role: res.data.role }));
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        email: res.data.email,
+        role: res.data.role,
+      })
+    );
   }
   return res.data;
 }
 
 export async function registerUser(name, email, password) {
-  // ensure token is not present when registering
   localStorage.removeItem("token");
-  const res = await axios.post("/auth/register", { name, email, password });
+  const res = await api.post("/auth/register", {
+    name,
+    email,
+    password,
+  });
   return res.data;
 }
 
