@@ -62,8 +62,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOriginPatterns(List.of(
-                "https://*.vercel.app",
+        config.setAllowedOrigins(List.of(
+                "https://online-course-platform-eosin.vercel.app",  // EXACT domain
                 "http://localhost:3000"
         ));
 
@@ -77,6 +77,7 @@ public class SecurityConfig {
 
         return source;
     }
+
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
