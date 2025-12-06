@@ -31,20 +31,33 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // ⭐ VERY IMPORTANT — allow CORS preflight requests
+        // 🔥 CRITICAL: Allow OPTIONS requests (CORS preflight) - NO AUTH NEEDED
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);
+            filterChain.doFilter(request, response);
             return;
         }
 
         String path = request.getServletPath();
 
-        // ⭐ Auth endpoints do NOT need JWT
-        if (path.startsWith("/api/auth")) {
+        // 🔥 Public endpoints - NO JWT required
+        if (path.startsWith("/api/auth") || 
+            path.equals("/") || 
+            path.equals("/health") ||
+            path.startsWith("/actuator/health")) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        // 🔥 GET requests for public data - NO JWT required
+        if ("GET".equalsIgnoreCase(request.getMethod())) {
+            if (path.startsWith("/api/courses") || path.startsWith("/api/reviews")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+        }
+
+        // Extract JWT token
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String username = null;
@@ -54,23 +67,26 @@ public class JwtFilter extends OncePerRequestFilter {
             try {
                 username = jwtUtil.extractUsername(token);
             } catch (ExpiredJwtException e) {
-                filterChain.doFilter(request, response);
-                return;
+                System.out.println("JWT Token expired: " + e.getMessage());
             } catch (Exception e) {
-                filterChain.doFilter(request, response);
-                return;
+                System.out.println("JWT Token error: " + e.getMessage());
             }
         }
 
+        // Validate token and set authentication
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            try {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            if (jwtUtil.validateToken(token, userDetails.getUsername())) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (Exception e) {
+                System.out.println("Authentication error: " + e.getMessage());
             }
         }
 
