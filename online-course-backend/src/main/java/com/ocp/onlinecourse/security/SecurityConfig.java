@@ -35,26 +35,25 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
 
-                // Allow CORS preflight
+                // Allow CORS Preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Public
+                // Public (No Login Required)
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
 
-                // User
+                // User (Must be logged in)
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
-                // Admin
+                // Admin (Must be admin)
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
 
-                // Everything else
+                // Everything else requires login
                 .anyRequest().authenticated()
         );
 
@@ -71,16 +70,20 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
+        // Allow deployed & local frontend
         config.setAllowedOriginPatterns(List.of(
-                "https://online-course-platform-eosin.vercel.app",  // deployed frontend
-                "http://localhost:3000"                             // local dev
+                "https://online-course-platform-eosin.vercel.app",
+                "http://localhost:3000"
         ));
 
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+        ));
+
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("*"));
 
-        // IMPORTANT: do NOT remove this
+        // allow cookies & Authorization header
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
