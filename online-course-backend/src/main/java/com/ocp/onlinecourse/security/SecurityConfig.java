@@ -35,27 +35,18 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
 
-                // Allow preflight CORS requests
+                // Allow CORS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Public health
-                .requestMatchers("/actuator/health").permitAll()
-
-                // Root GET
-                .requestMatchers(HttpMethod.GET, "/").permitAll()
-
-                // Authentication APIs
+                // Public
                 .requestMatchers("/api/auth/**").permitAll()
-
-                // Public GET endpoints
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
 
-                // User enrollment & checkout
+                // User
                 .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
-
-                // Reviews (authenticated user)
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
                 // Admin
@@ -77,6 +68,28 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOriginPatterns(List.of(
+                "https://online-course-platform-eosin.vercel.app",  // deployed frontend
+                "http://localhost:3000"                             // local dev
+        ));
+
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("*"));
+
+        // IMPORTANT: do NOT remove this
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
+    }
+
+    @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
             throws Exception {
         return config.getAuthenticationManager();
@@ -85,28 +98,5 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    /**
-     * GLOBAL CORS config (fixes Vercel + HTTPS)
-     */
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-
-        // Use AllowedOriginPatterns for HTTPS + credentials
-        config.setAllowedOriginPatterns(List.of(
-                "https://online-course-platform-eosin.vercel.app",  // your deployed frontend
-                "http://localhost:3000"                             // local dev
-        ));
-
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*")); // allow everything
-        config.setAllowCredentials(true);       // allow cookies / auth headers
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-
-        return source;
     }
 }
