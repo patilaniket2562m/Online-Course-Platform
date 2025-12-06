@@ -1,9 +1,13 @@
 import api from "./axiosConfig";
 
 export async function login(email, password) {
-  const res = await api.post("/auth/login", { email, password });
+  const res = await api.post(
+    "/auth/login",
+    { email, password },
+    { withCredentials: true } // 🔥 IMPORTANT
+  );
 
-  if (res && res.data && res.data.token) {
+  if (res?.data?.token) {
     localStorage.setItem("token", res.data.token);
     localStorage.setItem(
       "user",
@@ -13,16 +17,20 @@ export async function login(email, password) {
       })
     );
   }
+
   return res.data;
 }
 
 export async function registerUser(name, email, password) {
+  // Clear existing session
   localStorage.removeItem("token");
-  const res = await api.post("/auth/register", {
-    name,
-    email,
-    password,
-  });
+
+  const res = await api.post(
+    "/auth/register",
+    { name, email, password },
+    { withCredentials: true } // 🔥 IMPORTANT
+  );
+
   return res.data;
 }
 

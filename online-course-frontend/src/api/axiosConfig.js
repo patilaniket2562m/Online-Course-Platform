@@ -1,13 +1,16 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL + "/api",  // IMPORTANT
+  baseURL:
+    (process.env.REACT_APP_API_URL ||
+      "https://devoted-heart-production.up.railway.app") + "/api",
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // 🔥 REQUIRED
 });
 
-// JWT Auto Attach (EXCEPT /auth login/register)
+// JWT Auto Attach
 api.interceptors.request.use(
   (config) => {
     if (config.url && config.url.startsWith("/auth")) {
