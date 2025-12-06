@@ -30,37 +30,28 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable());
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // ⭐ REQUIRED ⭐
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
 
-        http.authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Allow CORS Preflight
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
+                        .requestMatchers("/actuator/health").permitAll()
 
-                // Public (No Login Required)
-                .requestMatchers("/", "/health").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
+                        .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
+                        .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
-                // User (Must be logged in)
-                .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
-                .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
-                .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
+                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
 
-                // Admin (Must be admin)
-                .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
-
-                // Everything else requires login
-                .anyRequest().authenticated()
-        );
-
-        http.sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        );
+                        .anyRequest().authenticated()
+                );
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -86,7 +77,6 @@ public class SecurityConfig {
 
         return source;
     }
-
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
