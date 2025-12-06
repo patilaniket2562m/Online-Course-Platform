@@ -6,8 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.Base64;
 
 @Component
 public class JwtUtil {
@@ -19,7 +19,8 @@ public class JwtUtil {
     private Long expirationTime;
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Base64.getEncoder().encode(secretKey.getBytes());
+        // Use the secret key directly (no Base64 encoding needed)
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
@@ -43,10 +44,31 @@ public class JwtUtil {
 
     public boolean validateToken(String token, String username) {
         try {
-            return username.equals(extractUsername(token));
+            String extractedUsername = extractUsername(token);
+            return username.equals(extractedUsername) && !isTokenExpired(token);
+        } catch (ExpiredJwtException e) {
+            System.out.println("JWT Token expired: " + e.getMessage());
+            return false;
+        } catch (MalformedJwtException e) {
+            System.out.println("Invalid JWT Token: " + e.getMessage());
+            return false;
         } catch (Exception e) {
             System.out.println("JWT Validation failed: " + e.getMessage());
             return false;
+        }
+    }
+
+    private boolean isTokenExpired(String token) {
+        try {
+            Date expiration = Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getExpiration();
+            return expiration.before(new Date());
+        } catch (Exception e) {
+            return true;
         }
     }
 }

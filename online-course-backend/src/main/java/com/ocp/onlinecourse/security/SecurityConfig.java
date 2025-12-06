@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                 // Public (No Login Required)
+                .requestMatchers("/", "/health").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
@@ -70,33 +71,33 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ✅ FIXED: Allow your exact Vercel frontend URL
+        // ✅ FIXED: Use setAllowedOrigins instead of setAllowedOriginPatterns
         config.setAllowedOrigins(List.of(
-            "https://online-course-platform-eosin.vercel.app",
-            "http://localhost:3000"  // for local development
+                "https://online-course-platform-eosin.vercel.app",
+                "http://localhost:3000"
         ));
 
         config.setAllowedMethods(List.of(
-            "GET", "POST", "PUT", "DELETE", "OPTIONS"
+                "GET", "POST", "PUT", "DELETE", "OPTIONS"
         ));
 
         config.setAllowedHeaders(List.of(
-            "Authorization", 
-            "Content-Type", 
-            "Accept",
-            "Origin",
-            "X-Requested-With"
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "X-Requested-With"
         ));
 
         config.setExposedHeaders(List.of(
-            "Authorization",
-            "Content-Type"
+                "Authorization",
+                "Content-Type"
         ));
 
-        // ✅ CRITICAL: Allow credentials (for cookies/auth headers)
+        // Allow cookies & Authorization header
         config.setAllowCredentials(true);
 
-        // ✅ Cache preflight requests for 1 hour
+        // Cache preflight requests for 1 hour
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
