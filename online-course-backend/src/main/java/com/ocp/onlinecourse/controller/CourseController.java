@@ -1,77 +1,138 @@
 package com.ocp.onlinecourse.controller;
 
-import java.util.Set;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
-
 import com.ocp.onlinecourse.model.Course;
+import com.ocp.onlinecourse.model.Enrollment;
 import com.ocp.onlinecourse.model.User;
 import com.ocp.onlinecourse.repository.CourseRepository;
+import com.ocp.onlinecourse.repository.EnrollmentRepository;
 import com.ocp.onlinecourse.repository.UserRepository;
-import com.ocp.onlinecourse.service.CourseService;
+import com.ocp.onlinecourse.security.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/courses")
-
 public class CourseController {
 
     @Autowired
-    private CourseService courseService;
+    private CourseRepository courseRepository;
+
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
 
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
-    private CourseRepository courseRepository;
+    private JwtUtil jwtUtil;
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    @PostMapping("/add")
-    public ResponseEntity<?> addCourse(@RequestBody Course course) {
-        return ResponseEntity.ok(courseService.addCourse(course));
-    }
 
+    /** ⭐ GET ALL COURSES (PUBLIC) */
     @GetMapping
     public ResponseEntity<?> getAllCourses() {
-        return ResponseEntity.ok(courseService.getAllCourses());
+        return ResponseEntity.ok(courseRepository.findAll());
     }
 
+
+    /** ⭐ GET SINGLE COURSE BY ID (PUBLIC) */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCourseById(@PathVariable Long id) {
-        return ResponseEntity.ok(courseService.getCourseById(id));
-    }
+    public ResponseEntity<?> getCourseDetails(@PathVariable Long id) {
+        Optional<Course> course = courseRepository.findById(id);
 
-    @PreAuthorize("hasAuthority('ROLE_USER')")
-    @PostMapping("/enroll/{courseId}")
-    public ResponseEntity<?> enrollCourse(@PathVariable Long courseId) {
-
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User Not Found"));
-
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course Not Found"));
-
-        if (!user.getEnrolledCourses().contains(course)) {
-            user.getEnrolledCourses().add(course);
-            userRepository.save(user);
-            return ResponseEntity.ok("Enrolled Successfully!");
+        if (course.isEmpty()) {
+            return ResponseEntity.status(404).body("Course not found");
         }
 
-        return ResponseEntity.badRequest().body("Already Enrolled!");
+        return ResponseEntity.ok(course.get());
     }
 
-    @PreAuthorize("hasAuthority('ROLE_USER')")
+
+    /** ⭐ ENROLL USER INTO A COURSE (JWT REQUIRED) */
+    @PostMapping("/enroll/{courseId}")
+    public ResponseEntity<?> enrollCourse(
+            @PathVariable Long courseId,
+            HttpServletRequest request
+    ) {
+        try {
+            String authHeader = request.getHeader("Authorization");
+
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Unauthorized: Token missing");
+            }
+
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractUsername(token);
+
+            Optional<User> optUser = userRepository.findByEmail(email);
+            Optional<Course> optCourse = courseRepository.findById(courseId);
+
+            if (optUser.isEmpty()) {
+                return ResponseEntity.status(404).body("User not found");
+            }
+            if (optCourse.isEmpty()) {
+                return ResponseEntity.status(404).body("Course not found");
+            }
+
+            User user = optUser.get();
+            Course course = optCourse.get();
+
+            // ⭐ Prevent duplicate enrollment
+            if (enrollmentRepository.existsByUserAndCourse(user, course)) {
+                return ResponseEntity.badRequest().body("Already enrolled");
+            }
+
+            Enrollment enrollment = new Enrollment();
+            enrollment.setUser(user);
+            enrollment.setCourse(course);
+
+            enrollmentRepository.save(enrollment);
+
+            return ResponseEntity.ok("Enrollment successful");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
+
+
+    /** ⭐ GET ENROLLED COURSES OF LOGGED-IN USER */
     @GetMapping("/my-courses")
-    public ResponseEntity<Set<Course>> myCourses() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+    public ResponseEntity<?> getMyCourses(HttpServletRequest request) {
+        try {
+            String authHeader = request.getHeader("Authorization");
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User Not Found"));
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Unauthorized: Token missing");
+            }
 
-        return ResponseEntity.ok(user.getEnrolledCourses());
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractUsername(token);
+
+            Optional<User> optUser = userRepository.findByEmail(email);
+
+            if (optUser.isEmpty()) {
+                return ResponseEntity.status(404).body("User not found");
+            }
+
+            User user = optUser.get();
+
+            List<Enrollment> enrollments = enrollmentRepository.findByUserId(user.getId());
+
+            // ⭐ Convert Enrollment → Course (clean return)
+            List<Course> courses = enrollments.stream()
+                    .map(Enrollment::getCourse)
+                    .toList();
+
+            return ResponseEntity.ok(courses);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
     }
+
 }

@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -30,17 +31,19 @@ public class EnrollmentController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    // ⭐ ENROLL USING POST + JWT + COURSE ID
+    /**
+     * ⭐ ENROLL USER IN A COURSE (POST)
+     */
     @PostMapping("/{courseId}")
     public ResponseEntity<?> enrollCourse(
             @PathVariable Long courseId,
             HttpServletRequest request
     ) {
         try {
-            // ⭐ Extract JWT token
             String authHeader = request.getHeader("Authorization");
+
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Unauthorized: Missing token");
+                return ResponseEntity.status(401).body("Unauthorized: Token missing");
             }
 
             String token = authHeader.substring(7);
@@ -52,6 +55,7 @@ public class EnrollmentController {
             if (optUser.isEmpty()) {
                 return ResponseEntity.status(404).body("User not found");
             }
+
             if (optCourse.isEmpty()) {
                 return ResponseEntity.status(404).body("Course not found");
             }
@@ -59,21 +63,56 @@ public class EnrollmentController {
             User user = optUser.get();
             Course course = optCourse.get();
 
-            // ⭐ Check if already enrolled
-            boolean alreadyEnrolled =
-                    enrollmentRepository.existsByUserIdAndCourseId(user.getId(), course.getId());
-
-            if (alreadyEnrolled) {
+            // ⭐ Check duplicate enrollment
+            if (enrollmentRepository.existsByUserAndCourse(user, course)) {
                 return ResponseEntity.badRequest().body("Already enrolled");
             }
 
-            // ⭐ Save enrollment
             Enrollment enrollment = new Enrollment();
             enrollment.setUser(user);
             enrollment.setCourse(course);
             enrollmentRepository.save(enrollment);
 
             return ResponseEntity.ok("Enrollment successful");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
+
+
+    /**
+     * ⭐ GET ALL ENROLLED COURSES OF CURRENT USER
+     */
+    @GetMapping("/my-courses")
+    public ResponseEntity<?> getMyCourses(HttpServletRequest request) {
+        try {
+            String authHeader = request.getHeader("Authorization");
+
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Unauthorized: Token missing");
+            }
+
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractUsername(token);
+
+            Optional<User> optUser = userRepository.findByEmail(email);
+
+            if (optUser.isEmpty()) {
+                return ResponseEntity.status(404).body("User not found");
+            }
+
+            User user = optUser.get();
+
+            // ⭐ Load enrolled records from DB
+            List<Enrollment> enrollments = enrollmentRepository.findByUserId(user.getId());
+
+            // ⭐ Convert enrollments to course list (simple mapping)
+            List<Course> courses = enrollments.stream()
+                    .map(Enrollment::getCourse)
+                    .toList();
+
+            return ResponseEntity.ok(courses);
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());

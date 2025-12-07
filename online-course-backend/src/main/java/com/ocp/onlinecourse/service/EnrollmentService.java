@@ -25,21 +25,33 @@ public class EnrollmentService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    /**
+     * Enroll a user using JWT Token & Course ID
+     */
     public void enrollUser(Long courseId, String token) {
 
-        String email = jwtUtil.extractUsername(token);
+        if (token == null || !token.startsWith("Bearer ")) {
+            throw new RuntimeException("Unauthorized request");
+        }
 
+        // Extract email from JWT (remove 'Bearer ')
+        String jwt = token.substring(7);
+        String email = jwtUtil.extractUsername(jwt);
+
+        // Fetch user
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Fetch course
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
 
-        // prevent duplicate enrollment
-        if (enrollmentRepository.existsByUserIdAndCourseId(user.getId(), course.getId())) {
+        // ⭐ Correct duplicate enrollment check
+        if (enrollmentRepository.existsByUserAndCourse(user, course)) {
             throw new RuntimeException("Already enrolled");
         }
 
+        // Save enrollment
         Enrollment enrollment = new Enrollment();
         enrollment.setUser(user);
         enrollment.setCourse(course);

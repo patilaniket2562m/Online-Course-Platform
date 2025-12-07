@@ -30,41 +30,49 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            .cors(cors -> {})
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
+                .cors(cors -> {})
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
 
-                // CORS preflight
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // OPTIONS required for CORS preflight
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Public endpoints
-                .requestMatchers("/", "/error", "/favicon.ico").permitAll()
-                .requestMatchers("/actuator/health", "/health").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
+                        // Public endpoints
+                        .requestMatchers("/", "/error", "/favicon.ico").permitAll()
+                        .requestMatchers("/actuator/health", "/health").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
 
-                // Public GET endpoints
-                .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
+                        // Public GET endpoints
+                        .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
 
-                // USER endpoints
-                .requestMatchers("/api/enroll/**").hasRole("USER")
-                .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
-                .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
+                        // ⭐ ENROLLED COURSES endpoint — must login as USER
+                        .requestMatchers(HttpMethod.GET, "/api/courses/my-courses").hasAuthority("ROLE_USER")
 
-                // ⭐ ADMIN endpoints FIXED ⭐
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/courses/add").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasRole("ADMIN")
+                        // ENROLL endpoint (backend is /api/enroll/{id})
+                        .requestMatchers(HttpMethod.POST, "/api/enroll/**").hasAuthority("ROLE_USER")
 
-                // Anything else requires authentication
-                .anyRequest().authenticated()
-            )
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            );
+                        // CHECKOUT confirm
+                        .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
+
+                        // Review posting requires login
+                        .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
+
+                        // Admin endpoints
+                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
+
+                        // Any other request
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                );
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
+        // Deprecated but still OK for Render/Vercel
         http.headers().frameOptions().disable();
 
         return http.build();
@@ -75,11 +83,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOriginPatterns(Arrays.asList("*"));
-
-        config.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
-        ));
-
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setExposedHeaders(Arrays.asList(
                 "Authorization", "Content-Type",
@@ -88,7 +92,6 @@ public class SecurityConfig {
                 "Access-Control-Allow-Methods",
                 "Access-Control-Allow-Credentials"
         ));
-
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
