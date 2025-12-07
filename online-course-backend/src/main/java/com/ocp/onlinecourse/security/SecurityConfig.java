@@ -18,7 +18,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
@@ -31,12 +30,11 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            // ⭐ Allow CORS before security rules
             .cors(cors -> {})
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
 
-                // ⭐⭐ REQUIRED for CORS preflight
+                // CORS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                 // Public endpoints
@@ -48,26 +46,25 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
 
-                // User endpoints
-                .requestMatchers("/api/enroll/**").hasAuthority("ROLE_USER")
-                .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
+                // USER endpoints
+                .requestMatchers("/api/enroll/**").hasRole("USER")
+                .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasRole("USER")
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
-                // Admin endpoints
-                .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/courses/add").hasAuthority("ROLE_ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasAuthority("ROLE_ADMIN")
+                // ⭐ ADMIN endpoints FIXED ⭐
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/courses/add").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/admin/delete-course/**").hasRole("ADMIN")
 
+                // Anything else requires authentication
                 .anyRequest().authenticated()
             )
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             );
 
-        // ⭐ Add JWT before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-        // ⭐ Prevent frame CORS failures
         http.headers().frameOptions().disable();
 
         return http.build();
@@ -77,7 +74,6 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ⭐ REQUIRED FOR ALL CLOUD DEPLOYS
         config.setAllowedOriginPatterns(Arrays.asList("*"));
 
         config.setAllowedMethods(Arrays.asList(
@@ -100,7 +96,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {

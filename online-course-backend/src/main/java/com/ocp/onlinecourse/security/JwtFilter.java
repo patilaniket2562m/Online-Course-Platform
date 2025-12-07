@@ -31,7 +31,7 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 🔥 CRITICAL: Allow OPTIONS requests (CORS preflight) - NO AUTH NEEDED
+        // Allow preflight CORS
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);
             filterChain.doFilter(request, response);
@@ -40,16 +40,16 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // 🔥 Public endpoints - NO JWT required
-        if (path.startsWith("/api/auth") || 
-            path.equals("/") || 
+        // Public endpoints
+        if (path.startsWith("/api/auth") ||
+            path.equals("/") ||
             path.equals("/health") ||
             path.startsWith("/actuator/health")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 🔥 GET requests for public data - NO JWT required
+        // Public GET endpoints
         if ("GET".equalsIgnoreCase(request.getMethod())) {
             if (path.startsWith("/api/courses") || path.startsWith("/api/reviews")) {
                 filterChain.doFilter(request, response);
@@ -57,7 +57,7 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         }
 
-        // Extract JWT token
+        // Extract auth header
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String username = null;
@@ -67,26 +67,36 @@ public class JwtFilter extends OncePerRequestFilter {
             try {
                 username = jwtUtil.extractUsername(token);
             } catch (ExpiredJwtException e) {
-                System.out.println("JWT Token expired: " + e.getMessage());
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
             } catch (Exception e) {
-                System.out.println("JWT Token error: " + e.getMessage());
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
             }
+        }
+
+        // If no token and endpoint requires auth
+        if (username == null &&
+            !path.startsWith("/api/auth") &&
+            !("GET".equalsIgnoreCase(request.getMethod()) &&
+                (path.startsWith("/api/courses") || path.startsWith("/api/reviews")))) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
 
         // Validate token and set authentication
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            try {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                if (jwtUtil.validateToken(token, userDetails.getUsername())) {
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails, null, userDetails.getAuthorities());
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
-            } catch (Exception e) {
-                System.out.println("Authentication error: " + e.getMessage());
+            if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails, null, userDetails.getAuthorities());
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            } else {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
             }
         }
 
