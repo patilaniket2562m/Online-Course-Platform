@@ -12,8 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/enroll")
@@ -32,7 +31,7 @@ public class EnrollmentController {
     private JwtUtil jwtUtil;
 
     /**
-     * ⭐ ENROLL USER IN A COURSE (POST)
+     * ⭐ ENROLL USER IN A COURSE
      */
     @PostMapping("/{courseId}")
     public ResponseEntity<?> enrollCourse(
@@ -82,7 +81,7 @@ public class EnrollmentController {
 
 
     /**
-     * ⭐ GET ALL ENROLLED COURSES OF CURRENT USER
+     * ⭐ GET ALL ENROLLED COURSES OF CURRENT USER (SAFE DTO)
      */
     @GetMapping("/my-courses")
     public ResponseEntity<?> getMyCourses(HttpServletRequest request) {
@@ -104,15 +103,27 @@ public class EnrollmentController {
 
             User user = optUser.get();
 
-            // ⭐ Load enrolled records from DB
+            // ⭐ Load enrollments
             List<Enrollment> enrollments = enrollmentRepository.findByUserId(user.getId());
 
-            // ⭐ Convert enrollments to course list (simple mapping)
-            List<Course> courses = enrollments.stream()
-                    .map(Enrollment::getCourse)
-                    .toList();
+            // ⭐ Convert safely to DTO
+            List<Map<String, Object>> courseDTOs = new ArrayList<>();
 
-            return ResponseEntity.ok(courses);
+            for (Enrollment e : enrollments) {
+                Course c = e.getCourse();
+
+                Map<String, Object> dto = new HashMap<>();
+                dto.put("id", c.getId());
+                dto.put("title", c.getTitle());
+                dto.put("description", c.getDescription());
+                dto.put("imageUrl", c.getImageUrl());
+                dto.put("instructor", c.getInstructor());
+                dto.put("price", c.getPrice());
+
+                courseDTOs.add(dto);
+            }
+
+            return ResponseEntity.ok(courseDTOs);
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
