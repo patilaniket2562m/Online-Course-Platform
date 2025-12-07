@@ -1,16 +1,12 @@
 package com.ocp.onlinecourse.repository;
 
-import com.ocp.onlinecourse.model.Course;
 import com.ocp.onlinecourse.model.Enrollment;
-import com.ocp.onlinecourse.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
+@Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
-    boolean existsByUserAndCourse(User user, Course course);
+    boolean existsByUserIdAndCourseId(Long userId, Long courseId);
 
-    // ⭐ REQUIRED FOR EnrollmentService
-    List<Enrollment> findByUserId(Long userId);
 }

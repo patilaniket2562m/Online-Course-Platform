@@ -48,7 +48,7 @@ public class SecurityConfig {
 
                 // USER endpoints
                 .requestMatchers("/api/enroll/**").hasRole("USER")
-                .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasRole("USER")
+                .requestMatchers(HttpMethod.POST, "/api/checkout/confirm/**").hasAuthority("ROLE_USER")
                 .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
                 // ⭐ ADMIN endpoints FIXED ⭐

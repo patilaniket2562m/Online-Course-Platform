@@ -1,45 +1,41 @@
 package com.ocp.onlinecourse.controller;
 
-import com.ocp.onlinecourse.model.Course;
-import com.ocp.onlinecourse.model.User;
-import com.ocp.onlinecourse.repository.CourseRepository;
-import com.ocp.onlinecourse.repository.UserRepository;
+import com.ocp.onlinecourse.service.EnrollmentService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/checkout")
-
 public class CheckoutController {
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private CourseRepository courseRepository;
+    private EnrollmentService enrollmentService;
 
     @PostMapping("/confirm/{courseId}")
-    public ResponseEntity<?> confirmEnrollment(@PathVariable Long courseId) {
+    public ResponseEntity<?> confirmEnrollment(
+            @PathVariable Long courseId,
+            HttpServletRequest request
+    ) {
+        try {
+            String authHeader = request.getHeader("Authorization");
 
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("Missing token");
+            }
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User Not Found"));
+            String token = authHeader.substring(7);
 
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course Not Found"));
+            enrollmentService.enrollUser(courseId, token);
 
-        // Already enrolled check
-        if (user.getEnrolledCourses().contains(course)) {
-            return ResponseEntity.badRequest().body("Already Enrolled");
+            return ResponseEntity.ok("Enrollment successful");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Enrollment failed: " + e.getMessage());
         }
-
-        // Add course to user's enrolled list
-        user.getEnrolledCourses().add(course);
-        userRepository.save(user);
-
-        return ResponseEntity.ok("Enrollment Successful!");
     }
 }

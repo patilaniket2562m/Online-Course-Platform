@@ -60,7 +60,9 @@ public class EnrollmentController {
             Course course = optCourse.get();
 
             // ⭐ Check if already enrolled
-            boolean alreadyEnrolled = enrollmentRepository.existsByUserAndCourse(user, course);
+            boolean alreadyEnrolled =
+                    enrollmentRepository.existsByUserIdAndCourseId(user.getId(), course.getId());
+
             if (alreadyEnrolled) {
                 return ResponseEntity.badRequest().body("Already enrolled");
             }
