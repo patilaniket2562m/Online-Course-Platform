@@ -34,34 +34,33 @@ export default function CheckoutPage() {
     setProcessing(true);
 
     try {
-      // ⭐ GET JWT from local storage
       const token = localStorage.getItem("token");
 
       if (!token) {
-        alert("Please login first!");
+        alert("Please login to enroll");
         navigate("/login");
         return;
       }
 
-      // ⭐ Correct working backend API call
-      await axios.post(`/enroll/${courseId}`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+      await axios.post(
+        `/enroll/${courseId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-      });
+      );
 
-      setTimeout(() => {
-        alert("🎉 Enrollment Successful! Welcome to the course!");
-        navigate("/my-courses");
-      }, 500);
-
+      alert("🎉 Enrollment Successful!");
+      navigate("/my-courses");
     } catch (error) {
-      console.error("Checkout Error:", error);
       setProcessing(false);
+      console.error("Checkout Error:", error);
 
       if (error.response?.status === 400) {
-        alert(error.response.data || "You are already enrolled in this course!");
+        alert(error.response.data || "Already enrolled in this course!");
         navigate("/my-courses");
       } else if (error.response?.status === 403) {
         alert("Forbidden: You are not allowed to enroll");
@@ -69,7 +68,7 @@ export default function CheckoutPage() {
         alert("Please login to enroll");
         navigate("/login");
       } else {
-        alert("Error while confirming enrollment. Please try again.");
+        alert("Error while confirming enrollment");
       }
     }
   };
@@ -108,33 +107,84 @@ export default function CheckoutPage() {
 
           {/* HEADER */}
           <div className="text-center mb-4">
-            <h2 className="fw-bold mb-2">
+            <h2 className="fw-bold">
               <i className="bi bi-cart-check text-primary me-2"></i>
-              Checkout
+              Confirm Enrollment
             </h2>
-            <p className="text-muted">Review your course details before enrollment</p>
+            <p className="text-muted">Review your course details before completing</p>
           </div>
 
-          {/* CHECKOUT CARD */}
+          {/* CARD */}
           <div className="card shadow-lg border-0 overflow-hidden">
 
+            {/* IMAGE */}
             <div style={{ height: "300px", overflow: "hidden" }}>
               <img
                 src={course.imageUrl || "https://via.placeholder.com/800x300/667eea/ffffff?text=Course+Preview"}
                 alt={course.title}
                 className="w-100 h-100"
                 style={{ objectFit: "cover" }}
+                onError={(e) => {
+                  e.target.src = "https://via.placeholder.com/800x300/667eea/ffffff?text=Course+Preview";
+                }}
               />
             </div>
 
+            {/* BODY */}
             <div className="card-body p-5">
 
               <h3 className="card-title fw-bold mb-3">{course.title}</h3>
 
-              <p className="card-text text-muted mb-4" style={{ lineHeight: "1.8" }}>
+              <p className="text-muted mb-4" style={{ lineHeight: "1.8" }}>
                 {course.description}
               </p>
 
+              {/* BENEFITS */}
+              <div className="alert alert-info border-0 bg-light mb-4">
+                <h6 className="fw-bold mb-3">
+                  <i className="bi bi-gift-fill me-2"></i>
+                  What You'll Get
+                </h6>
+                <ul className="list-unstyled mb-0">
+                  <li className="mb-2">
+                    <i className="bi bi-check-circle-fill text-success me-2"></i>
+                    Lifetime access
+                  </li>
+                  <li className="mb-2">
+                    <i className="bi bi-check-circle-fill text-success me-2"></i>
+                    Learn anytime
+                  </li>
+                  <li className="mb-2">
+                    <i className="bi bi-check-circle-fill text-success me-2"></i>
+                    Certificate
+                  </li>
+                  <li>
+                    <i className="bi bi-check-circle-fill text-success me-2"></i>
+                    Instructor support
+                  </li>
+                </ul>
+              </div>
+
+              {/* PRICING */}
+              <div className="card bg-light border-0 mb-4">
+                <div className="card-body">
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="text-muted">Course Price</span>
+                    <span className="fw-bold">₹{course.price}</span>
+                  </div>
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="text-muted">Discount</span>
+                    <span className="text-success fw-bold">₹0</span>
+                  </div>
+                  <hr />
+                  <div className="d-flex justify-content-between">
+                    <span className="h5 fw-bold">Total Amount</span>
+                    <span className="h4 text-success fw-bold">₹{course.price}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* BUTTONS */}
               <div className="d-grid gap-2">
                 <button
                   className="btn btn-success btn-lg py-3 fw-bold"
@@ -162,6 +212,13 @@ export default function CheckoutPage() {
                   <i className="bi bi-arrow-left me-2"></i>
                   Back to Courses
                 </button>
+              </div>
+
+              <div className="text-center mt-4">
+                <small className="text-muted">
+                  <i className="bi bi-shield-check me-1"></i>
+                  Your enrollment is secure and instant
+                </small>
               </div>
 
             </div>
