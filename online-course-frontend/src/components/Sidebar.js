@@ -30,7 +30,7 @@ export default function Sidebar() {
     {path: "/wishlist", icon: "bi-heart-fill", label: "Wishlist" },
     {path: "/settings", icon: "bi-gear-fill", label: "Settings" },
     { path: "/certificates", icon: "bi-award-fill", label: "Certificates" },
-    { path: "/profile", icon: "bi-person-circle", label: "Aman" },
+    { path: "/profile", icon: "bi-person-circle", label: "Profile" },
   ];
 
   // Navigation items for ADMIN
